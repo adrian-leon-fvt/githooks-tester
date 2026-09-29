@@ -1,0 +1,13 @@
+BasedOnStyle: Microsoft
+ColumnLimit: 80
+AlignTrailingComments: true
+AlignConsecutiveMacros: true
+AlignAfterOpenBracket: AlwaysBreak
+BinPackArguments: false
+BinPackParameters: false
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowAllConstructorInitializersOnNextLine: true
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+SortIncludes: false
+AlignConsecutiveBitFields: true

@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Checks staged changes only. Bypass (emergency): git commit --no-verify
+set -uo pipefail
+fail=0
+err() { echo "pre-commit: $*" >&2; fail=1; }
+
+# Whitespace errors + leftover conflict markers.
+git diff --cached --check || err "whitespace errors / conflict markers"
+
+mapfile -t files < <(git diff --cached --name-only --diff-filter=ACMR)
+
+for f in "${files[@]}"; do
+    # Large files belong in LFS/artifacts, not git.
+    size=$(git cat-file -s ":$f")
+    ((size > 1048576)) && err "$f is $((size / 1024)) KiB (>1 MiB)"
+
+    case "$f" in
+    *.c | *.cc | *.cpp | *.h | *.hpp)
+        # Check the staged blob, not the working tree.
+        git show ":$f" | clang-format --dry-run --Werror --assume-filename="$f" \
+            2>/dev/null || err "$f not clang-formatted (run: clang-format -i $f)"
+        ;;
+    *.sh | .githooks/*)
+        command -v shellcheck >/dev/null &&
+            { git show ":$f" | shellcheck - || err "$f fails shellcheck"; }
+        ;;
+    esac
+done
+
+# ponytail: regex secret scan, catches the obvious; use gitleaks for real coverage.
+secrets='(AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{36}|(password|passwd|secret|api_?key|token)[[:space:]]*[:=][[:space:]]*["'"'"'][^"'"'"']{6,})'
+git diff --cached -U0 --diff-filter=ACMR -- . ':!README.md' | grep '^+' | grep -iE "$secrets" &&
+    err "possible secret in staged changes"
+
+((fail)) && echo "pre-commit: commit blocked" >&2
+exit "$fail"
