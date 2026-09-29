@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Checks staged changes only. Bypass (emergency): git commit --no-verify
 set -uo pipefail
+PATH="$PWD/node_modules/.bin:$PATH" # hooks run from repo root
 fail=0
+ts=
 err() { echo "pre-commit: $*" >&2; fail=1; }
 
 # Whitespace errors + leftover conflict markers.
@@ -20,12 +22,28 @@ for f in "${files[@]}"; do
         git show ":$f" | clang-format --dry-run --Werror --assume-filename="$f" \
             2>/dev/null || err "$f not clang-formatted (run: clang-format -i $f)"
         ;;
+    *.py)
+        git show ":$f" | ruff check --stdin-filename "$f" - >&2 ||
+            err "$f fails ruff check"
+        git show ":$f" | ruff format --check --stdin-filename "$f" - >/dev/null ||
+            err "$f not ruff-formatted (run: ruff format $f)"
+        ;;
+    package-lock.json) ;;
+    *.ts | *.json | *.html)
+        blob=$(git show ":$f")
+        [[ "$blob" == "$(printf '%s' "$blob" | prettier --stdin-filepath "$f" 2>/dev/null)" ]] ||
+            err "$f not prettier-formatted (run: npx prettier --write -- $f)"
+        [[ "$f" == *.ts ]] && ts=1
+        ;;
     *.sh | .githooks/*)
         command -v shellcheck >/dev/null &&
             { git show ":$f" | shellcheck - || err "$f fails shellcheck"; }
         ;;
     esac
 done
+
+# ponytail: type-checks working tree, not staged blobs; fine unless you stage partial TS edits.
+[[ -n "${ts:-}" ]] && { tsc --noEmit >&2 || err "TypeScript type errors"; }
 
 # ponytail: regex secret scan, catches the obvious; use gitleaks for real coverage.
 secrets='(AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{36}|(password|passwd|secret|api_?key|token)[[:space:]]*[:=][[:space:]]*["'"'"'][^"'"'"']{6,})'

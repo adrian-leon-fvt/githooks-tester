@@ -1,4 +1,8 @@
 build/
+compile_commands.json
+web/dist/
+node_modules/
+__pycache__/
 *.gcda
 *.gcno
 coverage/

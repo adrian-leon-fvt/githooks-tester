@@ -1,9 +1,13 @@
-CXXFLAGS ?= -std=c++17 -Wall -Wextra -Werror
+.PHONY: build test run
+build:
+	cmake -S . -B build -G Ninja
+	cmake --build build
+	npx tsc --
 
-.PHONY: test
-test: build/test_math_utils
-	./build/test_math_utils
+test: build
+	ctest --test-dir build --output-on-failure
+	python3 -m unittest discover -s test -p 'test_*.py'
+	npm test --silent
 
-build/test_math_utils: test/unit/test_math_utils.cpp src/math_utils.h
-	mkdir -p build
-	$(CXX) $(CXXFLAGS) $< -o $@
+run: build
+	python3 server/app.py

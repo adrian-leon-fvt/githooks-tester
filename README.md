@@ -3,6 +3,23 @@
 Demonstrator for shared, version-controlled git hooks. Hooks catch style,
 sanitization, and breakage issues locally, before code reaches GitHub.
 
+Sample project: browser tic-tac-toe vs. unbeatable AI, split across three
+languages so hooks exercise each toolchain:
+
+```
+web/ (TypeScript)  --POST /api/move-->  server/ (Python)  --argv-->  engine/ (C++)
+   UI, clicks           {"board":"X...."}   validates, serves UI      minimax, prints JSON
+```
+
+```sh
+npm ci && pip install -r requirements-dev.txt
+make run      # build all, open http://localhost:8000
+make test     # GoogleTest (ctest) + unittest + node --test
+```
+
+CMake exports `compile_commands.json` on every configure and symlinks it into
+repo root for clangd / VS Code IntelliSense.
+
 ## Setup
 
 One command per clone (git ≥ 2.9):
@@ -14,19 +31,21 @@ git config core.hooksPath .githooks
 Git now runs hooks from `.githooks/` instead of `.git/hooks/`. Hooks live in
 the repo, so everyone gets same checks and updates via normal `git pull`.
 
-Requirements: `bash`, `clang-format`, `make`, `g++`. Optional: `shellcheck`
-(shell scripts are skipped if missing).
+Requirements: `bash`, `clang-format`, `cmake`, `ninja`, `g++`, `node` ≥ 22.18
+(runs `.ts` tests natively), `python3`, plus `ruff` (`requirements-dev.txt`)
+and `prettier`/`tsc` (`npm ci`). GoogleTest: system package if found, else
+CMake downloads it. Optional: `shellcheck` (shell scripts skipped if missing).
 
 On Windows, run from Git Bash or WSL. If hooks don't fire, check they are
 executable: `git update-index --chmod=+x .githooks/*`.
 
 ## Hooks
 
-| Hook         | When                 | Checks                                                                                                                                       |
-| ------------ | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pre-commit` | `git commit`         | trailing whitespace, conflict markers, files > 1 MiB, `clang-format` on staged C/C++, `shellcheck` on scripts, obvious secrets (AWS/GitHub tokens, private keys, `password = "..."`) |
-| `commit-msg` | after message typed  | [Conventional Commits](https://www.conventionalcommits.org): `type(scope)?: subject`, ≤ 72 chars                                             |
-| `pre-push`   | `git push`           | blocks direct push to `main`, blocks `fixup!`/`squash!`/`WIP` commits, runs `make test`                                                      |
+| Hook         | When                | Checks                                                                                                                                                                                                                                                              |
+| ------------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pre-commit` | `git commit`        | trailing whitespace, conflict markers, files > 1 MiB, `clang-format` on C/C++, `ruff check` + `ruff format` on Python, `prettier` on TS/JSON/HTML, `tsc` type-check, `shellcheck` on scripts, obvious secrets (AWS/GitHub tokens, private keys, `password = "..."`) |
+| `commit-msg` | after message typed | [Conventional Commits](https://www.conventionalcommits.org): `type(scope)?: subject`, ≤ 72 chars                                                                                                                                                                    |
+| `pre-push`   | `git push`          | blocks direct push to `main`, blocks `fixup!`/`squash!`/`WIP` commits, runs `make test` (all 3 languages)                                                                                                                                                           |
 
 `pre-commit` checks the **staged** content, not the working tree, so partially
 staged files are judged on what will actually be committed.
@@ -34,10 +53,10 @@ staged files are judged on what will actually be committed.
 ## Try it
 
 ```sh
-# Style failure
-printf 'int  main(){return 0;}\n' > src/bad.cpp && git add src/bad.cpp
+# Style failure (same idea for .py via ruff, .ts via prettier)
+printf 'int  main(){return 0;}\n' > engine/bad.cpp && git add engine/bad.cpp
 git commit -m "feat: bad"          # blocked: not clang-formatted
-clang-format -i src/bad.cpp && git add src/bad.cpp
+clang-format -i engine/bad.cpp && git add engine/bad.cpp
 
 # Message failure
 git commit -m "added stuff"        # blocked: not conventional
@@ -66,8 +85,12 @@ protection for anything that must hold.
 ## Layout
 
 ```
-.githooks/     pre-commit, commit-msg, pre-push
-.clang-format  team C++ style (Microsoft base, 80 cols)
-src/           sample code
-test/unit/     sample test run by `make test`
+.githooks/       pre-commit, commit-msg, pre-push
+.clang-format    team C++ style (Microsoft base, 80 cols)
+CMakeLists.txt   C++ build, GoogleTest, compile_commands.json
+engine/          C++ rules + minimax AI, CLI `ttt_engine <board>`
+server/app.py    Python stdlib HTTP server, input validation, calls engine
+web/             TypeScript UI (src/ -> dist/ via tsc)
+test/unit/       GoogleTest suite for engine
+test/            Python + TS tests
 ```

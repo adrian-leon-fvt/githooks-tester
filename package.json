@@ -1,0 +1,23 @@
+{
+  "name": "githooks-tester",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "node --test test/*.test.ts",
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adrian-leon-fvt/githooks-tester.git"
+  },
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/adrian-leon-fvt/githooks-tester/issues"
+  },
+  "homepage": "https://github.com/adrian-leon-fvt/githooks-tester#readme",
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "prettier": "^3.9.9",
+    "typescript": "^7.0.2"
+  },
+  "private": true
+}
