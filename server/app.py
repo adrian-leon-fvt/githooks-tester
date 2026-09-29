@@ -53,5 +53,9 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    print("http://localhost:8000")
-    HTTPServer(("127.0.0.1", 8000), Handler).serve_forever()
+    with HTTPServer(("127.0.0.1", 8000), Handler) as server:
+        print("http://localhost:8000 (Ctrl-C to stop)")
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            print("\nshutting down")
