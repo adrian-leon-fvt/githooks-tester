@@ -46,7 +46,7 @@ done
 [[ -n "${ts:-}" ]] && { tsc --noEmit >&2 || err "TypeScript type errors"; }
 
 if command -v betterleaks >/dev/null; then
-    betterleaks git --pre-commit --staged --redact --verbose --no-banner --log-level warn ||
+    betterleaks git --pre-commit --staged --redact --verbose --legacy-print --no-banner --log-level warn ||
         err "betterleaks found secrets (false positive? add fingerprint to .betterleaksignore)"
 else
     err "betterleaks not installed, see README"
