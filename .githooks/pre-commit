@@ -45,10 +45,12 @@ done
 # ponytail: type-checks working tree, not staged blobs; fine unless you stage partial TS edits.
 [[ -n "${ts:-}" ]] && { tsc --noEmit >&2 || err "TypeScript type errors"; }
 
-# ponytail: regex secret scan, catches the obvious; use gitleaks for real coverage.
-secrets='(AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{36}|(password|passwd|secret|api_?key|token)[[:space:]]*[:=][[:space:]]*["'"'"'][^"'"'"']{6,})'
-git diff --cached -U0 --diff-filter=ACMR -- . ':!README.md' | grep '^+' | grep -iE "$secrets" &&
-    err "possible secret in staged changes"
+if command -v gitleaks >/dev/null; then
+    gitleaks git --pre-commit --staged --redact --verbose --no-banner --log-level warn ||
+        err "gitleaks found secrets (false positive? add fingerprint to .gitleaksignore)"
+else
+    err "gitleaks not installed, see README"
+fi
 
 ((fail)) && echo "pre-commit: commit blocked" >&2
 exit "$fail"

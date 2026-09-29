@@ -34,18 +34,20 @@ the repo, so everyone gets same checks and updates via normal `git pull`.
 Requirements: `bash`, `clang-format`, `cmake`, `ninja`, `g++`, `node` ≥ 22.18
 (runs `.ts` tests natively), `python3`, plus `ruff` (`requirements-dev.txt`)
 and `prettier`/`tsc` (`npm ci`). GoogleTest: system package if found, else
-CMake downloads it. Optional: `shellcheck` (shell scripts skipped if missing).
+CMake downloads it. [`gitleaks`](https://github.com/gitleaks/gitleaks#installing)
+≥ 8.19 (required, commit blocked if missing). Optional: `shellcheck` (shell
+scripts skipped if missing).
 
 On Windows, run from Git Bash or WSL. If hooks don't fire, check they are
 executable: `git update-index --chmod=+x .githooks/*`.
 
 ## Hooks
 
-| Hook         | When                | Checks                                                                                                                                                                                                                                                              |
-| ------------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pre-commit` | `git commit`        | trailing whitespace, conflict markers, files > 1 MiB, `clang-format` on C/C++, `ruff check` + `ruff format` on Python, `prettier` on TS/JSON/HTML, `tsc` type-check, `shellcheck` on scripts, obvious secrets (AWS/GitHub tokens, private keys, `password = "..."`) |
-| `commit-msg` | after message typed | [Conventional Commits](https://www.conventionalcommits.org): `type(scope)?: subject`, ≤ 72 chars                                                                                                                                                                    |
-| `pre-push`   | `git push`          | blocks direct push to `main`, blocks `fixup!`/`squash!`/`WIP` commits, runs `make test` (all 3 languages)                                                                                                                                                           |
+| Hook         | When                | Checks                                                                                                                                                                                                                                                                       |
+| ------------ | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pre-commit` | `git commit`        | trailing whitespace, conflict markers, files > 1 MiB, `clang-format` on C/C++, `ruff check` + `ruff format` on Python, `prettier` on TS/JSON/HTML, `tsc` type-check, `shellcheck` on scripts, secrets via `gitleaks` (false positives: add fingerprint to `.gitleaksignore`) |
+| `commit-msg` | after message typed | [Conventional Commits](https://www.conventionalcommits.org): `type(scope)?: subject`, ≤ 72 chars                                                                                                                                                                             |
+| `pre-push`   | `git push`          | blocks direct push to `main`, blocks `fixup!`/`squash!`/`WIP` commits, runs `make test` (all 3 languages)                                                                                                                                                                    |
 
 `pre-commit` checks the **staged** content, not the working tree, so partially
 staged files are judged on what will actually be committed.
@@ -63,8 +65,8 @@ git commit -m "added stuff"        # blocked: not conventional
 git commit -m "feat: add bad.cpp"  # ok
 
 # Secret failure
-echo 'api_key = "abcdef123456"' > cfg.txt && git add cfg.txt
-git commit -m "chore: cfg"         # blocked: possible secret
+echo "github_token = \"ghp_$(head -c 64 /dev/urandom | base64 | tr -dc A-Za-z0-9 | head -c 36)\"" > cfg.txt
+git add cfg.txt && git commit -m "chore: cfg"  # blocked: gitleaks
 
 # Push failure
 git push origin main               # blocked: use a branch + PR
