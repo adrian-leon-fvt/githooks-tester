@@ -7,7 +7,7 @@ ts=
 err() { echo "pre-commit: $*" >&2; fail=1; }
 
 # Whitespace errors + leftover conflict markers.
-git diff --cached --check || err "whitespace errors / conflict markers"
+git --no-pager diff --cached --check || err "whitespace errors / conflict markers"
 
 mapfile -t files < <(git diff --cached --name-only --diff-filter=ACMR)
 
