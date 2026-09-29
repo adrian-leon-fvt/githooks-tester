@@ -2,6 +2,7 @@
  * @file main.cpp
  * @brief CLI: `ttt_engine <board>`. AI plays 'O', replies once, prints JSON
  * {"board":"...","winner":"."} to stdout. Exit 2 on invalid input.
+ * And this is a test
  */
 #include "tictactoe.h"
 
