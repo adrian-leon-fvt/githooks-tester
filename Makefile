@@ -2,7 +2,7 @@
 build:
 	cmake -S . -B build -G Ninja
 	cmake --build build
-	npx tsc --
+	npx tsc
 
 test: build
 	ctest --test-dir build --output-on-failure
