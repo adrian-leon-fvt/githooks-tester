@@ -45,11 +45,11 @@ done
 # ponytail: type-checks working tree, not staged blobs; fine unless you stage partial TS edits.
 [[ -n "${ts:-}" ]] && { tsc --noEmit >&2 || err "TypeScript type errors"; }
 
-if command -v gitleaks >/dev/null; then
-    gitleaks git --pre-commit --staged --redact --verbose --no-banner --log-level warn ||
-        err "gitleaks found secrets (false positive? add fingerprint to .gitleaksignore)"
+if command -v betterleaks >/dev/null; then
+    betterleaks git --pre-commit --staged --redact --verbose --no-banner --log-level warn ||
+        err "betterleaks found secrets (false positive? add fingerprint to .betterleaksignore)"
 else
-    err "gitleaks not installed, see README"
+    err "betterleaks not installed, see README"
 fi
 
 ((fail)) && echo "pre-commit: commit blocked" >&2
